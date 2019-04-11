@@ -2,7 +2,7 @@
   "name": "jms-ci",
   "version": "0.0.1",
   "description": "Standard Publish Tooling for js-multi-seed Development",
-  "main": "index.js",
+  "main": "./src/index.js",
   "keywords": [
     "ci",
     "publish",
@@ -10,15 +10,25 @@
     "tool"
   ],
   "scripts": {
-    "start": "node index"
+    "start": "node ./src/index"
   },
   "author": "alexbian",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alex86gbk/jms-ci.git"
+  },
   "license": "MIT",
   "dependencies": {
     "body-parser": "^1.18.3",
+    "co": "^4.6.0",
+    "connect-timeout": "^1.9.0",
     "express": "^4.16.4",
     "log4js": "^4.1.0",
     "nedb": "^1.8.0",
     "opn": "^6.0.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.16.0"
   }
 }
