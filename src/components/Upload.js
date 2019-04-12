@@ -89,7 +89,7 @@ const renameFile = function (originalName) {
   const names = originalName.split('.');
   const extension = names.pop();
 
-  return names.join('.') + '-' + Date.now() + '.' + extension;
+  return (names.length > 1 ? names.join('.') + '-' : '') + Date.now() + '.' + extension;
 };
 
 let filename;

@@ -145,8 +145,8 @@ function getProjectList(req, res, next) {
       for (let i = 0; i< records.length; i++) {
         list.push({
           id: records[i]._id,
-          icon: records[i].fileId ? yield queryUploadFileRecords(records[i].fileId) : '',
           name: records[i].name,
+          icon: records[i].fileId ? yield queryUploadFileRecords(records[i].fileId) : '',
           localPath: records[i].localPath,
           remotePath: records[i].remotePath,
           description: records[i].description,
@@ -203,7 +203,7 @@ function publishProject(req, res, next) {
  */
 function deleteProject(req, res, next) {
   const id = req.body.id;
-  co(function * saveProject() {
+  co(function * deleteProject() {
     if (id) {
       const result = yield removeProjectRecord(req.body);
       res.send(result);
