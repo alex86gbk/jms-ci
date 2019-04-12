@@ -7,9 +7,9 @@ const timeout = require('connect-timeout');
 const bodyParser = require('body-parser');
 const opn = require('opn');
 
-const log4js = require('log4js');
 const config = require('./config');
 
+const log4js = require('log4js');
 log4js.configure(config.log4js);
 const logger = log4js.getLogger('index');
 
@@ -44,6 +44,7 @@ function timeOutHandler(req, res, next) {
 function init() {
   return new Promise(function (resolve) {
     app.use(express.static(path.join(process.cwd(), 'public')));
+    app.use('/upload', express.static(path.join(process.cwd(), '_upload')));
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: false}));
     app.use(timeout(config.TIME_OUT));

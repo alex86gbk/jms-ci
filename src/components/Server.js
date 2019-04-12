@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const co = require('co');
 const database = require('../db-server');
 

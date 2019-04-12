@@ -18,8 +18,9 @@ const db = {
   })
 };
 
-db.project.ensureIndex({ fieldName: 'createdAt'}, function (err) {});
-db.server.ensureIndex({ fieldName: 'createdAt'}, function (err) {});
-db.file.ensureIndex({ fieldName: 'createdAt'}, function (err) {});
+db.project.ensureIndex({ fieldName: 'localPath', unique: true }, function (err) {});
+db.project.ensureIndex({ fieldName: 'createdAt' }, function (err) {});
+db.server.ensureIndex({ fieldName: 'host', unique: true }, function (err) {});
+db.server.ensureIndex({ fieldName: 'createdAt' }, function (err) {});
 
 module.exports = db;

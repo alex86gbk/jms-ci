@@ -3,3 +3,4 @@ package-lock.json
 /.idea
 /_logs
 /_db
+/_upload

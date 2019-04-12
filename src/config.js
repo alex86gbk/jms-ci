@@ -31,7 +31,7 @@ const log4js = {
 };
 
 module.exports = {
-  PORT: PORT,
-  TIME_OUT: TIME_OUT,
-  log4js: log4js,
+  PORT,
+  TIME_OUT,
+  log4js,
 };
