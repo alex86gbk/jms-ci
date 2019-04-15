@@ -8,6 +8,29 @@ const logger = log4js.getLogger('Project');
 const database = require('../db-server');
 
 /**
+ * 查询 project 表中的单条数据
+ * @param query
+ * @return {Promise}
+ */
+const queryProjectRecord = function (query) {
+  return new Promise(function (resolve, reject) {
+    database.project.findOne(query).exec(function (err, doc) {
+      if (err) {
+        logger.error(err);
+        reject({
+          result: {
+            status: 0,
+            errMsg: err.message,
+          }
+        });
+      } else {
+        resolve(doc);
+      }
+    });
+  });
+};
+
+/**
  * 查询 project 表中的数据
  * @return {Promise}
  */
@@ -15,7 +38,13 @@ const queryProjectRecords = function () {
   return new Promise(function (resolve, reject) {
     database.project.find({}).sort({ createdAt: -1 }).exec(function (err, docs) {
       if (err) {
-        reject(err);
+        logger.error(err);
+        reject({
+          result: {
+            status: 0,
+            errMsg: err.message,
+          }
+        });
       } else {
         resolve({
           list: docs,
@@ -30,11 +59,12 @@ const queryProjectRecords = function () {
  * @param {String} id
  * @return {Promise | String}
  */
-const queryUploadFileRecords = function (id) {
+const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        reject(err);
+        logger.error(err);
+        reject('');
       } else {
         if (doc) {
           resolve('/upload/' + doc.filename);
@@ -68,7 +98,7 @@ const updateProjectRecord = function (data) {
           }
         });
       }
-      logger.info(`更新项目 ${data.name} ${data.localPath} 成功`);
+      logger.info(`更新项目： ${data.name} ${data.localPath} 成功`);
       resolve({
         result: {
           status: 1,
@@ -96,7 +126,7 @@ const insertProjectRecord = function (data) {
           }
         });
       }
-      logger.info(`新建项目 ${data.name} ${data.localPath} 成功`);
+      logger.info(`新建项目： ${data.name} ${data.localPath} 成功`);
       resolve({
         result: {
           status: 1,
@@ -112,7 +142,7 @@ const insertProjectRecord = function (data) {
  */
 const removeProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
-    database.project.remove({ _id: data.id }, function (err) {
+    database.project.remove({ _id: data._id }, function (err) {
       if (err) {
         logger.error(err);
         reject({
@@ -122,7 +152,7 @@ const removeProjectRecord = function (data) {
           }
         });
       }
-      logger.info(`删除项目 ${data.name} ${data.localPath} 成功`);
+      logger.info(`删除项目： ${data.name} ${data.localPath} 成功`);
       resolve({
         result: {
           status: 1,
@@ -143,10 +173,16 @@ function getProjectList(req, res, next) {
       const records = data.list;
       const list = [];
       for (let i = 0; i< records.length; i++) {
+        let icon;
+        try {
+          icon = yield queryUploadFileRecord(records[i].fileId);
+        } catch (err) {
+          icon = '';
+        }
         list.push({
           id: records[i]._id,
           name: records[i].name,
-          icon: records[i].fileId ? yield queryUploadFileRecords(records[i].fileId) : '',
+          icon: icon,
           localPath: records[i].localPath,
           remotePath: records[i].remotePath,
           description: records[i].description,
@@ -170,8 +206,12 @@ function saveProject(req, res, next) {
   const id = req.body.id;
   co(function * saveProject() {
     if (id) {
-      const result = yield updateProjectRecord(req.body);
-      res.send(result);
+      try {
+        const result = yield updateProjectRecord(req.body);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
     } else {
       try {
         const result = yield insertProjectRecord(req.body);
@@ -205,8 +245,24 @@ function deleteProject(req, res, next) {
   const id = req.body.id;
   co(function * deleteProject() {
     if (id) {
-      const result = yield removeProjectRecord(req.body);
-      res.send(result);
+      try {
+        const record = yield queryProjectRecord({
+          _id: id,
+        });
+        if (record._id) {
+          const result = yield removeProjectRecord(record);
+          res.send(result);
+        } else {
+          res.send({
+            result: {
+              status: 0,
+              errMsg: '找不到该项目',
+            }
+          });
+        }
+      } catch (err) {
+        res.send(err);
+      }
     } else {
       res.send({
         result: {

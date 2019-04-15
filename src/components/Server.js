@@ -8,6 +8,29 @@ const logger = log4js.getLogger('Server');
 const database = require('../db-server');
 
 /**
+ * 查询 server 表中的单条数据
+ * @param query
+ * @return {Promise}
+ */
+const queryServerRecord = function (query) {
+  return new Promise(function (resolve, reject) {
+    database.server.findOne(query).exec(function (err, doc) {
+      if (err) {
+        logger.error(err);
+        reject({
+          result: {
+            status: 0,
+            errMsg: err.message,
+          }
+        });
+      } else {
+        resolve(doc);
+      }
+    });
+  });
+};
+
+/**
  * 查询 server 表中的数据
  * @return {Promise}
  */
@@ -21,7 +44,13 @@ const queryServerRecords = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.find(rules).sort({createdAt: -1}).exec(function (err, docs) {
       if (err) {
-        reject(err);
+        logger.error(err);
+        reject({
+          result: {
+            status: 0,
+            errMsg: err.message,
+          }
+        });
       } else {
         resolve({
           list: docs,
@@ -36,11 +65,12 @@ const queryServerRecords = function (query) {
  * @param {String} id
  * @return {Promise | String}
  */
-const queryUploadFileRecords = function (id) {
+const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        reject(err);
+        logger.error(err);
+        reject('');
       } else {
         if (doc) {
           resolve(doc.originalname);
@@ -77,7 +107,7 @@ const updateServerRecord = function (data) {
           }
         });
       }
-      logger.info(`更新服务器 ${data.name} ${data.host} 成功`);
+      logger.info(`更新服务器： ${data.name} ${data.host} 成功`);
       resolve({
         result: {
           status: 1,
@@ -105,7 +135,7 @@ const insertServerRecord = function (data) {
           }
         });
       }
-      logger.info(`新建服务器 ${data.name} ${data.host} 成功`);
+      logger.info(`新建服务器： ${data.name} ${data.host} 成功`);
       resolve({
         result: {
           status: 1,
@@ -121,7 +151,7 @@ const insertServerRecord = function (data) {
  */
 const removeServerRecord = function (data) {
   return new Promise(function (resolve, reject) {
-    database.server.remove({ _id: data.id }, function (err) {
+    database.server.remove({ _id: data._id }, function (err) {
       if (err) {
         logger.error(err);
         reject({
@@ -131,7 +161,7 @@ const removeServerRecord = function (data) {
           }
         });
       }
-      logger.info(`删除服务器 ${data.name} ${data.host} 成功`);
+      logger.info(`删除服务器： ${data.name} ${data.host} 成功`);
       resolve({
         result: {
           status: 1,
@@ -153,6 +183,12 @@ function getServerList(req, res, next) {
       const records = data.list;
       const list = [];
       for (let i = 0; i< records.length; i++) {
+        let secretKey;
+        try {
+          secretKey = yield queryUploadFileRecord(records[i].fileId);
+        } catch (err) {
+          secretKey = '';
+        }
         list.push({
           id: records[i]._id,
           name: records[i].name,
@@ -161,7 +197,7 @@ function getServerList(req, res, next) {
           platform: records[i].platform,
           username: records[i].username,
           auth: records[i].auth,
-          secretKey: records[i].fileId ? yield queryUploadFileRecords(records[i].fileId) : '',
+          secretKey: secretKey,
           fileId: records[i].fileId,
           password: records[i].password,
           callNo: records[i].callNo,
@@ -208,8 +244,12 @@ function saveServer(req, res, next) {
   const id = req.body.id;
   co(function * saveServer() {
     if (id) {
-      const result = yield updateServerRecord(req.body);
-      res.send(result);
+      try {
+        const result = yield updateServerRecord(req.body);
+        res.send(result);
+      } catch (err) {
+        res.send(err);
+      }
     } else {
       try {
         const result = yield insertServerRecord(req.body);
@@ -229,8 +269,24 @@ function deleteServer(req, res, next) {
   const id = req.body.id;
   co(function * deleteServer() {
     if (id) {
-      const result = yield removeServerRecord(req.body);
-      res.send(result);
+      try {
+        const record = yield queryServerRecord({
+          _id: id,
+        });
+        if (record._id) {
+          const result = yield removeServerRecord(record);
+          res.send(result);
+        } else {
+          res.send({
+            result: {
+              status: 0,
+              errMsg: '找不到该服务器',
+            }
+          });
+        }
+      } catch (err) {
+        res.send(err);
+      }
     } else {
       res.send({
         result: {
