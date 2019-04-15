@@ -223,9 +223,9 @@ function getServerSelectList(req, res, next) {
     try {
       const data = yield queryServerRecords();
       res.send({
-        list: data.map(function (item) {
+        list: data.list.map(function (item) {
           return {
-            id: item.id,
+            id: item._id,
             host: item.host,
           };
         }),
