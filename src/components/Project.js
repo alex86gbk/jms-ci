@@ -1,12 +1,40 @@
+const path = require('path');
+
 const _ = require('lodash');
 const co = require('co');
 const spawn = require('cross-spawn');
+
+const node_ssh = require('node-ssh');
+const ssh = new node_ssh();
 
 const log4js = require('log4js');
 log4js.configure(require('../config').log4js);
 const logger = log4js.getLogger('Project');
 
 const database = require('../db-server');
+
+/**
+ * 查询 server 表中的单条数据
+ * @param query
+ * @return {Promise}
+ */
+const queryServerRecord = function (query) {
+  return new Promise(function (resolve, reject) {
+    database.server.findOne(query).exec(function (err, doc) {
+      if (err) {
+        logger.error(err);
+        reject({
+          result: {
+            status: 0,
+            errMsg: err.message,
+          }
+        });
+      } else {
+        resolve(doc);
+      }
+    });
+  });
+};
 
 /**
  * 查询 project 表中的单条数据
@@ -238,6 +266,85 @@ const runBuild = function (project) {
 };
 
 /**
+ * 链接到服务器
+ * @param host
+ * @return {Promise}
+ */
+const connectToServer = function(host) {
+  let connect;
+  if (host.auth === 'password') {
+    connect = {
+      host: host.host,
+      username: host.username,
+      password: host.password,
+    };
+  } else {
+    connect = {
+      host: host.host,
+      username: host.username,
+      privateKey: host.key,
+    };
+  }
+  return new Promise(function (resolve) {
+    ssh.connect(connect).then(function () {
+      resolve({
+        ssh,
+        result: {
+          status: 1,
+          errMsg: '',
+        }
+      });
+    });
+  });
+};
+
+/**
+ * 清理远程目录
+ * @param ssh
+ * @param project
+ * @return {Promise}
+ */
+const cleanRemotePath = function(ssh, project) {
+  return new Promise(function (resolve) {
+    ssh.exec('rm -rf ' + project.remotePath).then(resolve);
+  });
+};
+
+/**
+ * 传输数据
+ */
+const transfersToRemote = function (ssh, project) {
+  const failed = [];
+  const successful = [];
+
+  ssh.putDirectory(path.join(project.localPath, 'dist'), project.remotePath, {
+    recursive: true,
+    concurrency: 1,
+    tick: function(localPath, remotePath, error) {
+      if (error) {
+        failed.push(localPath)
+      } else {
+        successful.push(localPath)
+      }
+    }
+  }).then(function(status) {
+    if (!status) {
+      logger.error('Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
+      logger.error('Will transfer again after 5 seconds !\n');
+      setTimeout(function () {
+        transfersToRemote(ssh, project);
+      }, 5000);
+    } else {
+      updateProjectStatus({
+        id: project._id,
+        isPackaging: false,
+        isPublishing: false,
+      });
+    }
+  })
+};
+
+/**
  * 获取项目列表
  */
 function getProjectList(req, res, next) {
@@ -346,7 +453,50 @@ function packageProject(req, res, next) {
  * 发布项目
  */
 function publishProject(req, res, next) {
-
+  const projectId = req.body.projectId;
+  const serverId = req.body.serverId;
+  co(function * deleteProject() {
+    if (projectId && serverId) {
+      try {
+        const project = yield queryProjectRecord({
+          _id: projectId,
+        });
+        const server = yield queryServerRecord({
+          _id: serverId,
+        });
+        yield updateProjectStatus({
+          id: projectId,
+          isPackaging: false,
+          isPublishing: true,
+        });
+        if (project._id && server._id) {
+          const { ssh, result } = yield connectToServer(server);
+          yield cleanRemotePath(ssh, project);
+          transfersToRemote(ssh, project);
+          res.send({
+            result,
+          });
+        } else {
+          res.send({
+            result: {
+              status: 0,
+              errMsg: '找不到该项目或服务器',
+            }
+          });
+        }
+      } catch (err) {
+        res.send(err);
+      }
+    } else {
+      res.send({
+        result: {
+          status: 0,
+          errMsg: '项目或服务器 id 不能为空',
+        }
+      });
+    }
+    next();
+  });
 }
 
 /**
