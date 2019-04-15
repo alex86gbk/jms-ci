@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const co = require('co');
+const spawn = require('cross-spawn');
 
 const log4js = require('log4js');
 log4js.configure(require('../config').log4js);
@@ -73,6 +74,35 @@ const queryUploadFileRecord = function (id) {
         }
       }
     });
+  });
+};
+
+/**
+ * 更新项目状态
+ */
+const updateProjectStatus = function (data) {
+  const record = {
+    isPackaging: data.isPackaging,
+    isPublishing: data.isPublishing,
+  };
+  return new Promise(function (resolve, reject) {
+    database.project.update(
+      { _id: data.id },
+      { $set: record },
+      { multi: true },
+      function (err) {
+        if (err) {
+          logger.error(err);
+          reject({
+            result: {
+              status: 0,
+              errMsg: err.message,
+            }
+          });
+        }
+        resolve();
+      }
+    );
   });
 };
 
@@ -164,6 +194,50 @@ const removeProjectRecord = function (data) {
 };
 
 /**
+ * 运行打包
+ */
+const runBuild = function (project) {
+  return new Promise(function (resolve, reject) {
+    const command = spawn('npm', ['run', 'build'], {
+      cwd: project.localPath,
+    });
+    command.stdout.on('data', function() {
+      resolve({
+        result: {
+          status: 1,
+          errMsg: '',
+        }
+      });
+    });
+    command.stderr.on('data', function(data) {
+      reject({
+        result: {
+          status: 0,
+          errMsg: data.toString(),
+        }
+      });
+    });
+    command.on('close', function() {
+      updateProjectStatus({
+        id: project._id,
+        isPackaging: false,
+        isPublishing: false,
+      });
+      resolve();
+    });
+    command.on('error', function(err) {
+      logger.error(err.toString());
+      reject({
+        result: {
+          status: 0,
+          errMsg: err.toString(),
+        }
+      });
+    });
+  });
+};
+
+/**
  * 获取项目列表
  */
 function getProjectList(req, res, next) {
@@ -187,6 +261,8 @@ function getProjectList(req, res, next) {
           remotePath: records[i].remotePath,
           description: records[i].description,
           fileId: records[i].fileId,
+          isPackaging: records[i].isPackaging,
+          isPublishing: records[i].isPublishing,
         });
       }
       res.send({
@@ -228,7 +304,42 @@ function saveProject(req, res, next) {
  * 打包项目
  */
 function packageProject(req, res, next) {
-
+  const id = req.body.id;
+  co(function * deleteProject() {
+    if (id) {
+      try {
+        const record = yield queryProjectRecord({
+          _id: id,
+        });
+        if (record._id) {
+          yield updateProjectStatus({
+            id,
+            isPackaging: true,
+            isPublishing: false,
+          });
+          const result = yield runBuild(record);
+          res.send(result);
+        } else {
+          res.send({
+            result: {
+              status: 0,
+              errMsg: '找不到该项目',
+            }
+          });
+        }
+      } catch (err) {
+        res.send(err);
+      }
+    } else {
+      res.send({
+        result: {
+          status: 0,
+          errMsg: '项目 id 不能为空',
+        }
+      });
+    }
+    next();
+  });
 }
 
 /**
