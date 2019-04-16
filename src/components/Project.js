@@ -109,6 +109,35 @@ const queryUploadFileRecord = function (id, type) {
 };
 
 /**
+ * 更新服务器状态
+ * @param data
+ */
+const updateServerStatus = function (data) {
+  const record = {
+    latestPublishAt: data.latestPublishAt,
+  };
+  return new Promise(function (resolve, reject) {
+    database.server.update(
+      { _id: data.id },
+      { $set: record },
+      { multi: true },
+      function (err) {
+        if (err) {
+          logger.error(err);
+          reject({
+            result: {
+              status: 0,
+              errMsg: err.message,
+            }
+          });
+        }
+        resolve();
+      }
+    );
+  });
+};
+
+/**
  * 更新项目状态
  */
 const updateProjectStatus = function (data) {
@@ -270,27 +299,27 @@ const runBuild = function (project) {
 
 /**
  * 链接到服务器
- * @param host
+ * @param server
  */
-const connectToServer = function(host) {
-  return co.wrap(function * connectToServer(host) {
+const connectToServer = function(server) {
+  return co.wrap(function * connectToServer(server) {
     let connect;
     let secretKey;
-    if (host.auth === 'password') {
+    if (server.auth === 'password') {
       connect = {
-        host: host.host,
-        username: host.username,
-        password: host.password,
+        host: server.host,
+        username: server.username,
+        password: server.password,
       };
     } else {
       try {
-        secretKey = yield queryUploadFileRecord(host.fileId, 'file');
+        secretKey = yield queryUploadFileRecord(server.fileId, 'file');
       } catch (err) {
         secretKey = '';
       }
       connect = {
-        host: host.host,
-        username: host.username,
+        host: server.host,
+        username: server.username,
         privateKey: secretKey,
       };
     }
@@ -314,7 +343,7 @@ const connectToServer = function(host) {
         })
       });
     });
-  })(host);
+  })(server);
 };
 
 /**
@@ -332,7 +361,7 @@ const cleanRemotePath = function(ssh, project) {
 /**
  * 传输数据
  */
-const transfersToRemote = function (ssh, project) {
+const transfersToRemote = function (ssh, project, server) {
   const failed = [];
   const successful = [];
 
@@ -351,13 +380,17 @@ const transfersToRemote = function (ssh, project) {
       logger.error('Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
       logger.error('Will transfer again after 5 seconds !\n');
       setTimeout(function () {
-        transfersToRemote(ssh, project);
+        transfersToRemote(ssh, project, server);
       }, 5000);
     } else {
       updateProjectStatus({
         id: project._id,
         isPackaging: false,
         isPublishing: false,
+      });
+      updateServerStatus({
+        id: server._id,
+        latestPublishAt: Date.now(),
       });
     }
   })
@@ -491,7 +524,7 @@ function publishProject(req, res, next) {
             isPublishing: true,
           });
           yield cleanRemotePath(ssh, project);
-          transfersToRemote(ssh, project);
+          transfersToRemote(ssh, project, server);
           res.send({
             result,
           });

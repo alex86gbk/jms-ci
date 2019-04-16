@@ -97,24 +97,29 @@ const updateServerRecord = function (data) {
     fileId: data.auth === 'key' ? data.fileId : '',
   };
   return new Promise(function (resolve, reject) {
-    database.server.update({ _id: data.id }, record, function (err) {
-      if (err) {
-        logger.error(err);
-        reject({
+    database.server.update(
+      { _id: data.id },
+      { $set: record },
+      { multi: true },
+      function (err) {
+        if (err) {
+          logger.error(err);
+          reject({
+            result: {
+              status: 0,
+              errMsg: err.message,
+            }
+          });
+        }
+        logger.info(`更新服务器： ${data.name} ${data.host} 成功`);
+        resolve({
           result: {
-            status: 0,
-            errMsg: err.message,
+            status: 1,
+            errMsg: '',
           }
         });
       }
-      logger.info(`更新服务器： ${data.name} ${data.host} 成功`);
-      resolve({
-        result: {
-          status: 1,
-          errMsg: '',
-        }
-      });
-    });
+    );
   });
 };
 
@@ -173,8 +178,17 @@ const removeServerRecord = function (data) {
 };
 
 /**
+ * 检查服务器状态
+ * @param host
+ * @return {Promise}
+ */
+const checkServerStatus = function (host) {
+
+};
+
+/**
  * 获取服务器列表
- * TODO 获取发布次数，最后发布时间，在线状态
+ * TODO 获取发布次数，在线状态
  */
 function getServerList(req, res, next) {
   co(function * getServerList() {
@@ -184,6 +198,7 @@ function getServerList(req, res, next) {
       const list = [];
       for (let i = 0; i< records.length; i++) {
         let secretKey;
+        let status;
         try {
           secretKey = yield queryUploadFileRecord(records[i].fileId);
         } catch (err) {
@@ -202,7 +217,7 @@ function getServerList(req, res, next) {
           password: records[i].password,
           callNo: records[i].callNo,
           latestPublishAt: records[i].latestPublishAt,
-          status: records[i].status,
+          status: status,
         });
       }
       res.send({
