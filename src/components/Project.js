@@ -86,17 +86,20 @@ const queryProjectRecords = function () {
 /**
  * 查询 file 表中的数据
  * @param {String} id
+ * @param {String} type
  * @return {Promise | String}
  */
-const queryUploadFileRecord = function (id) {
+const queryUploadFileRecord = function (id, type) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
         logger.error(err);
         reject('');
       } else {
-        if (doc) {
+        if (doc && type === 'image') {
           resolve('/upload/' + doc.filename);
+        } else if (doc && type === 'file') {
+          resolve(path.join(process.cwd(), '_upload', doc.filename));
         } else {
           resolve('');
         }
@@ -268,34 +271,50 @@ const runBuild = function (project) {
 /**
  * 链接到服务器
  * @param host
- * @return {Promise}
  */
 const connectToServer = function(host) {
-  let connect;
-  if (host.auth === 'password') {
-    connect = {
-      host: host.host,
-      username: host.username,
-      password: host.password,
-    };
-  } else {
-    connect = {
-      host: host.host,
-      username: host.username,
-      privateKey: host.key,
-    };
-  }
-  return new Promise(function (resolve) {
-    ssh.connect(connect).then(function () {
-      resolve({
-        ssh,
-        result: {
-          status: 1,
-          errMsg: '',
-        }
+  return co.wrap(function * connectToServer(host) {
+    let connect;
+    let secretKey;
+    if (host.auth === 'password') {
+      connect = {
+        host: host.host,
+        username: host.username,
+        password: host.password,
+      };
+    } else {
+      try {
+        secretKey = yield queryUploadFileRecord(host.fileId, 'file');
+      } catch (err) {
+        secretKey = '';
+      }
+      connect = {
+        host: host.host,
+        username: host.username,
+        privateKey: secretKey,
+      };
+    }
+    return new Promise(function (resolve, reject) {
+      connect.readyTimeout = 5000;
+      ssh.connect(connect).then(function () {
+        resolve({
+          ssh,
+          result: {
+            status: 1,
+            errMsg: '',
+          }
+        });
+      }).catch(function (err) {
+        logger.error(err);
+        reject({
+          result: {
+            status: 0,
+            errMsg: err.message,
+          }
+        })
       });
     });
-  });
+  })(host);
 };
 
 /**
@@ -356,7 +375,7 @@ function getProjectList(req, res, next) {
       for (let i = 0; i< records.length; i++) {
         let icon;
         try {
-          icon = yield queryUploadFileRecord(records[i].fileId);
+          icon = yield queryUploadFileRecord(records[i].fileId, 'image');
         } catch (err) {
           icon = '';
         }
@@ -464,13 +483,13 @@ function publishProject(req, res, next) {
         const server = yield queryServerRecord({
           _id: serverId,
         });
-        yield updateProjectStatus({
-          id: projectId,
-          isPackaging: false,
-          isPublishing: true,
-        });
         if (project._id && server._id) {
           const { ssh, result } = yield connectToServer(server);
+          yield updateProjectStatus({
+            id: projectId,
+            isPackaging: false,
+            isPublishing: true,
+          });
           yield cleanRemotePath(ssh, project);
           transfersToRemote(ssh, project);
           res.send({
