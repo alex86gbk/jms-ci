@@ -14,6 +14,7 @@ router.post('/getServerList', Server.getServerList);
 router.post('/getServerSelectList', Server.getServerSelectList);
 router.post('/saveServer', Server.saveServer);
 router.post('/deleteServer', Server.deleteServer);
+router.post('/checkServerStatus', Server.checkServerStatus);
 router.post('/uploadFile', Upload.uploadFile);
 
 module.exports = router;

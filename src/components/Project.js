@@ -1,17 +1,11 @@
-const path = require('path');
-
-const _ = require('lodash');
 const co = require('co');
-const spawn = require('cross-spawn');
-
-const node_ssh = require('node-ssh');
-const ssh = new node_ssh();
 
 const log4js = require('log4js');
 log4js.configure(require('../config').log4js);
 const logger = log4js.getLogger('Project');
 
 const database = require('../db-server');
+const SSH = require('./SSH');
 
 /**
  * 查询 server 表中的单条数据
@@ -86,20 +80,17 @@ const queryProjectRecords = function () {
 /**
  * 查询 file 表中的数据
  * @param {String} id
- * @param {String} type
  * @return {Promise | String}
  */
-const queryUploadFileRecord = function (id, type) {
+const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
         logger.error(err);
         reject('');
       } else {
-        if (doc && type === 'image') {
+        if (doc) {
           resolve('/upload/' + doc.filename);
-        } else if (doc && type === 'file') {
-          resolve(path.join(process.cwd(), '_upload', doc.filename));
         } else {
           resolve('');
         }
@@ -298,105 +289,6 @@ const runBuild = function (project) {
 };
 
 /**
- * 链接到服务器
- * @param server
- */
-const connectToServer = function(server) {
-  return co.wrap(function * connectToServer(server) {
-    let connect;
-    let secretKey;
-    if (server.auth === 'password') {
-      connect = {
-        host: server.host,
-        username: server.username,
-        password: server.password,
-      };
-    } else {
-      try {
-        secretKey = yield queryUploadFileRecord(server.fileId, 'file');
-      } catch (err) {
-        secretKey = '';
-      }
-      connect = {
-        host: server.host,
-        username: server.username,
-        privateKey: secretKey,
-      };
-    }
-    return new Promise(function (resolve, reject) {
-      connect.readyTimeout = 5000;
-      ssh.connect(connect).then(function () {
-        resolve({
-          ssh,
-          result: {
-            status: 1,
-            errMsg: '',
-          }
-        });
-      }).catch(function (err) {
-        logger.error(err);
-        reject({
-          result: {
-            status: 0,
-            errMsg: err.message,
-          }
-        })
-      });
-    });
-  })(server);
-};
-
-/**
- * 清理远程目录
- * @param ssh
- * @param project
- * @return {Promise}
- */
-const cleanRemotePath = function(ssh, project) {
-  return new Promise(function (resolve) {
-    ssh.exec('rm -rf ' + project.remotePath).then(resolve);
-  });
-};
-
-/**
- * 传输数据
- */
-const transfersToRemote = function (ssh, project, server) {
-  const failed = [];
-  const successful = [];
-
-  ssh.putDirectory(path.join(project.localPath, 'dist'), project.remotePath, {
-    recursive: true,
-    concurrency: 1,
-    tick: function(localPath, remotePath, error) {
-      if (error) {
-        failed.push(localPath)
-      } else {
-        successful.push(localPath)
-      }
-    }
-  }).then(function(status) {
-    if (!status) {
-      logger.error('Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
-      logger.error('Will transfer again after 5 seconds !\n');
-      setTimeout(function () {
-        transfersToRemote(ssh, project, server);
-      }, 5000);
-    } else {
-      updateProjectStatus({
-        id: project._id,
-        isPackaging: false,
-        isPublishing: false,
-      });
-      updateServerStatus({
-        id: server._id,
-        latestPublishAt: Date.now(),
-      });
-    }
-  })
-};
-
-/**
  * 获取项目列表
  */
 function getProjectList(req, res, next) {
@@ -408,7 +300,7 @@ function getProjectList(req, res, next) {
       for (let i = 0; i< records.length; i++) {
         let icon;
         try {
-          icon = yield queryUploadFileRecord(records[i].fileId, 'image');
+          icon = yield queryUploadFileRecord(records[i].fileId);
         } catch (err) {
           icon = '';
         }
@@ -517,16 +409,25 @@ function publishProject(req, res, next) {
           _id: serverId,
         });
         if (project._id && server._id) {
-          const { ssh, result } = yield connectToServer(server);
+          const { ssh, result } = yield SSH.connectToServer(server);
           yield updateProjectStatus({
             id: projectId,
             isPackaging: false,
             isPublishing: true,
           });
-          yield cleanRemotePath(ssh, project);
-          transfersToRemote(ssh, project, server);
           res.send({
             result,
+          });
+          yield SSH.cleanRemotePath(ssh, project);
+          yield SSH.transfersToRemote(ssh, project, server);
+          updateProjectStatus({
+            id: project._id,
+            isPackaging: false,
+            isPublishing: false,
+          });
+          updateServerStatus({
+            id: server._id,
+            latestPublishAt: Date.now(),
           });
         } else {
           res.send({

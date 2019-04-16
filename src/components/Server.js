@@ -6,6 +6,7 @@ log4js.configure(require('../config').log4js);
 const logger = log4js.getLogger('Server');
 
 const database = require('../db-server');
+const SSH = require('./SSH');
 
 /**
  * 查询 server 表中的单条数据
@@ -178,17 +179,7 @@ const removeServerRecord = function (data) {
 };
 
 /**
- * 检查服务器状态
- * @param host
- * @return {Promise}
- */
-const checkServerStatus = function (host) {
-
-};
-
-/**
  * 获取服务器列表
- * TODO 获取发布次数，在线状态
  */
 function getServerList(req, res, next) {
   co(function * getServerList() {
@@ -198,7 +189,6 @@ function getServerList(req, res, next) {
       const list = [];
       for (let i = 0; i< records.length; i++) {
         let secretKey;
-        let status;
         try {
           secretKey = yield queryUploadFileRecord(records[i].fileId);
         } catch (err) {
@@ -217,7 +207,7 @@ function getServerList(req, res, next) {
           password: records[i].password,
           callNo: records[i].callNo,
           latestPublishAt: records[i].latestPublishAt,
-          status: status,
+          status: 2,
         });
       }
       res.send({
@@ -314,9 +304,49 @@ function deleteServer(req, res, next) {
   });
 }
 
+/**
+ * 检查服务器状态
+ */
+function checkServerStatus(req, res, next) {
+  const id = req.body.id;
+  co(function * deleteProject() {
+    if (id) {
+      try {
+        const server = yield queryServerRecord({
+          _id: id,
+        });
+        if (server._id) {
+          const { result } = yield SSH.connectToServer(server);
+          res.send({
+            result,
+          });
+        } else {
+          res.send({
+            result: {
+              status: 0,
+              errMsg: '找不到该服务器',
+            }
+          });
+        }
+      } catch (err) {
+        res.send(err);
+      }
+    } else {
+      res.send({
+        result: {
+          status: 0,
+          errMsg: '服务器 id 不能为空',
+        }
+      });
+    }
+    next();
+  });
+}
+
 module.exports = {
   getServerList,
   getServerSelectList,
   saveServer,
   deleteServer,
+  checkServerStatus,
 };
