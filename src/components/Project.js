@@ -119,7 +119,7 @@ const updateServerStatus = function (data) {
   return new Promise(function (resolve, reject) {
     database.server.update(
       { _id: data.id },
-      { $set: record },
+      { $set: record, $inc: { callNo: 1 } },
       { multi: true },
       function (err) {
         if (err) {
