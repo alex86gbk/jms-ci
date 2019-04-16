@@ -85,6 +85,21 @@ function connectToServer(server) {
 }
 
 /**
+ * 断开连接
+ */
+function disconnectFromServer(ssh) {
+  return new Promise(function (resolve) {
+    try {
+      ssh.dispose();
+      resolve();
+    } catch (err) {
+      logger.error(err);
+      resolve();
+    }
+  });
+}
+
+/**
  * 清理远程目录
  * @param ssh
  * @param project
@@ -136,4 +151,5 @@ module.exports = {
   connectToServer,
   cleanRemotePath,
   transfersToRemote,
+  disconnectFromServer,
 };

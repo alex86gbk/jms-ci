@@ -420,6 +420,7 @@ function publishProject(req, res, next) {
           });
           yield SSH.cleanRemotePath(ssh, project);
           yield SSH.transfersToRemote(ssh, project, server);
+          yield SSH.disconnectFromServer(ssh);
           updateProjectStatus({
             id: project._id,
             isPackaging: false,

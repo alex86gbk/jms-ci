@@ -309,14 +309,15 @@ function deleteServer(req, res, next) {
  */
 function checkServerStatus(req, res, next) {
   const id = req.body.id;
-  co(function * deleteProject() {
+  co(function * checkServerStatus() {
     if (id) {
       try {
         const server = yield queryServerRecord({
           _id: id,
         });
         if (server._id) {
-          const { result } = yield SSH.connectToServer(server);
+          const { ssh, result } = yield SSH.connectToServer(server);
+          yield SSH.disconnectFromServer(ssh);
           res.send({
             result,
           });
