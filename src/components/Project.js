@@ -1,4 +1,5 @@
 const co = require('co');
+const spawn = require('cross-spawn');
 
 const log4js = require('log4js');
 log4js.configure(require('../config').log4js);
@@ -409,7 +410,8 @@ function publishProject(req, res, next) {
           _id: serverId,
         });
         if (project._id && server._id) {
-          const { ssh, result } = yield SSH.connectToServer(server);
+          const connect = yield SSH.getConnect(server);
+          const { ssh, result } = yield SSH.connectToServer(connect);
           yield updateProjectStatus({
             id: projectId,
             isPackaging: false,

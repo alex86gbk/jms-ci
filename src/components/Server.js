@@ -1,5 +1,8 @@
+const path = require('path');
+
 const _ = require('lodash');
 const co = require('co');
+const { spawn } = require('child_process');
 
 const log4js = require('log4js');
 log4js.configure(require('../config').log4js);
@@ -179,6 +182,18 @@ const removeServerRecord = function (data) {
 };
 
 /**
+ * 获取命令结果
+ */
+const getConnectResult = function (command, data) {
+  return new Promise(function (resolve) {
+    command.stdin.write(JSON.stringify(data));
+    command.stdout.on('data', function(chunk) {
+      resolve(JSON.parse(chunk));
+    });
+  });
+};
+
+/**
  * 获取服务器列表
  */
 function getServerList(req, res, next) {
@@ -316,10 +331,11 @@ function checkServerStatus(req, res, next) {
           _id: id,
         });
         if (server._id) {
-          const { ssh, result } = yield SSH.connectToServer(server);
-          yield SSH.disconnectFromServer(ssh);
+          const connect = yield SSH.getConnect(server);
+          const command = spawn('node', ['./src/spawn/connectToServer']);
+          const result = yield getConnectResult(command, connect);
           res.send({
-            result,
+            result: result,
           });
         } else {
           res.send({

@@ -1,7 +1,6 @@
 const path = require('path');
 
 const co = require('co');
-const spawn = require('cross-spawn');
 
 const node_ssh = require('node-ssh');
 const ssh = new node_ssh();
@@ -35,12 +34,10 @@ const getPrivateKey = function (id) {
 };
 
 /**
- * 链接到服务器
- * @param server
- * @return {*}
+ * 获取连接信息
  */
-function connectToServer(server) {
-  return co.wrap(function * connectToServer(server) {
+function getConnect(server) {
+  return co.wrap(function * getConnect(server) {
     let connect;
     let secretKey;
     if (server.auth === 'password') {
@@ -61,6 +58,17 @@ function connectToServer(server) {
         privateKey: secretKey,
       };
     }
+    return connect;
+  })(server);
+}
+
+/**
+ * 链接到服务器
+ * @param connect
+ * @return {*}
+ */
+function connectToServer(connect) {
+  return co.wrap(function * connectToServer(connect) {
     return new Promise(function (resolve, reject) {
       connect.readyTimeout = 5000;
       ssh.connect(connect).then(function () {
@@ -72,7 +80,7 @@ function connectToServer(server) {
           }
         });
       }).catch(function (err) {
-        logger.error(err);
+        logger.error(server.host + err);
         reject({
           result: {
             status: 0,
@@ -81,7 +89,7 @@ function connectToServer(server) {
         })
       });
     });
-  })(server);
+  })(connect);
 }
 
 /**
@@ -148,6 +156,7 @@ function transfersToRemote(ssh, project, server) {
 }
 
 module.exports = {
+  getConnect,
   connectToServer,
   cleanRemotePath,
   transfersToRemote,
