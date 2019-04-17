@@ -80,7 +80,7 @@ function connectToServer(connect) {
           }
         });
       }).catch(function (err) {
-        logger.error(server.host + err);
+        logger.error(connect.host + err);
         reject({
           result: {
             status: 0,
