@@ -1,19 +1,19 @@
 const path = require('path');
 const DataStore = require('nedb');
 
-const DB_DIR = '_db';
+const DB_DIR = '../_db';
 
 const db = {
   project: new DataStore({
-    filename: path.join(process.cwd(), DB_DIR, 'project.db'),
+    filename: path.join(__dirname, DB_DIR, 'project.db'),
     autoload: true,
   }),
   server: new DataStore({
-    filename: path.join(process.cwd(), DB_DIR, 'server.db'),
+    filename: path.join(__dirname, DB_DIR, 'server.db'),
     autoload: true,
   }),
   file: new DataStore({
-    filename: path.join(process.cwd(), DB_DIR, 'file.db'),
+    filename: path.join(__dirname, DB_DIR, 'file.db'),
     autoload: true,
   })
 };

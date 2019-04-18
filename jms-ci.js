@@ -1,5 +1,9 @@
-const path = require('path');
+#!/usr/bin/env node --harmony
 
+const path = require('path');
+const fs = require('fs');
+
+const co = require('co');
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -7,13 +11,13 @@ const timeout = require('connect-timeout');
 const bodyParser = require('body-parser');
 const opn = require('opn');
 
-const config = require('./config');
+const config = require('./src/config');
 
 const log4js = require('log4js');
 log4js.configure(config.log4js);
 const logger = log4js.getLogger('index');
 
-const common = require('./routers/common');
+const common = require('./src/routers/common');
 
 /**
  * 异常处理
@@ -39,12 +43,28 @@ function timeOutHandler(req, res, next) {
 }
 
 /**
- * 初始化
+ * 初始化上传路径
+ * @return {Promise}
  */
-function init() {
+function initUploadPath() {
+  const uploadPath = path.join(__dirname, '_upload');
+  const existUploadPath = fs.existsSync(path.join(uploadPath));
+
+  if (!existUploadPath) {
+    fs.mkdirSync(uploadPath);
+    return Promise.resolve(true);
+  } else {
+    return Promise.resolve(true);
+  }
+}
+
+/**
+ * 初始化 express
+ */
+function initExpressApp() {
   return new Promise(function (resolve) {
-    app.use(express.static(path.join(process.cwd(), 'public')));
-    app.use('/upload', express.static(path.join(process.cwd(), '_upload')));
+    app.use(express.static(path.join(__dirname, 'public')));
+    app.use('/upload', express.static(path.join(__dirname, '_upload')));
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: false}));
     app.use(timeout(config.TIME_OUT));
@@ -72,4 +92,8 @@ function routers() {
   app.use('/common', common);
 }
 
-init().then(routers);
+co(function *() {
+  yield initUploadPath();
+  yield initExpressApp();
+  routers();
+});

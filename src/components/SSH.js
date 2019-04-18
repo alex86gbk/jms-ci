@@ -24,7 +24,7 @@ const getPrivateKey = function (id) {
         reject('');
       } else {
         if (doc) {
-          resolve(path.join(process.cwd(), '_upload', doc.filename));
+          resolve(path.join(__dirname, '../../_upload', doc.filename));
         } else {
           resolve('');
         }

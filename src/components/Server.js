@@ -332,7 +332,7 @@ function checkServerStatus(req, res, next) {
         });
         if (server._id) {
           const connect = yield SSH.getConnect(server);
-          const command = spawn('node', ['./src/spawn/connectToServer']);
+          const command = spawn('node', [path.join(__dirname, '../spawn/connectToServer')]);
           const result = yield getConnectResult(command, connect);
           res.send({
             result: result,

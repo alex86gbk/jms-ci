@@ -8,13 +8,13 @@ const log4js = {
   appenders: {
     app: {
       type: 'file',
-      filename: path.join(process.cwd(), '_logs', 'app.log'),
+      filename: path.join(__dirname, '../_logs', 'app.log'),
       maxLogSize: 10485760,
       numBackups: 3
     },
     errorFile: {
       type: 'file',
-      filename: path.join(process.cwd(), '_logs', 'errors.log')
+      filename: path.join(__dirname, '../_logs', 'errors.log')
     },
     errors: {
       type: 'logLevelFilter',

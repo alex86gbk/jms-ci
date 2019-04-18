@@ -11,7 +11,7 @@ const database = require('../db-server');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(process.cwd(), '_upload'))
+    cb(null, path.join(__dirname, '../../_upload'))
   },
   filename: function (req, file, cb) {
     filename = renameFile(file.originalname);
