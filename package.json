@@ -1,9 +1,9 @@
 {
   "name": "jms-ci",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Standard Publish Tooling for js-multi-seed Development",
   "bin": {
-    "jms-ci": "./bin/index.js"
+    "jms-ci": "./src/index.js"
   },
   "main": "./src/index.js",
   "keywords": [
