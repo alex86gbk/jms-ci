@@ -12,9 +12,6 @@
     "jms",
     "tool"
   ],
-  "scripts": {
-    "start": "node ./jms-ci"
-  },
   "author": "alexbian",
   "repository": {
     "type": "git",
