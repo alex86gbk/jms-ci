@@ -20,7 +20,7 @@ const queryServerRecord = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.findOne(query).exec(function (err, doc) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Server]: ' + err);
         reject({
           result: {
             status: 0,
@@ -48,7 +48,7 @@ const queryServerRecords = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.find(rules).sort({createdAt: -1}).exec(function (err, docs) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Server]: ' + err);
         reject({
           result: {
             status: 0,
@@ -73,7 +73,7 @@ const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Server]: ' + err);
         reject('');
       } else {
         if (doc) {
@@ -107,7 +107,7 @@ const updateServerRecord = function (data) {
       { multi: true },
       function (err) {
         if (err) {
-          debugLogger.debug(err);
+          debugLogger.debug('[Server]: ' + err);
           reject({
             result: {
               status: 0,
@@ -136,7 +136,7 @@ const insertServerRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.server.insert(record, function (err) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Server]: ' + err);
         reject({
           result: {
             status: 0,
@@ -162,7 +162,7 @@ const removeServerRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.server.remove({ _id: data._id }, function (err) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Server]: ' + err);
         reject({
           result: {
             status: 0,

@@ -19,7 +19,7 @@ const getPrivateKey = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[SSH]: ' + err);
         reject('');
       } else {
         if (doc) {
@@ -79,7 +79,7 @@ function connectToServer(connect) {
           },
         });
       }).catch(function (err) {
-        debugLogger.debug(connect.host + err);
+        debugLogger.debug('[SSH]: ' + connect.host + err);
         reject({
           result: {
             status: 0,
@@ -100,7 +100,7 @@ function disconnectFromServer(ssh) {
       ssh.dispose();
       resolve();
     } catch (err) {
-      debugLogger.debug(err);
+      debugLogger.debug('[SSH]: ' + err);
       resolve();
     }
   });
@@ -142,8 +142,8 @@ function transfersToRemote(ssh, project, server) {
       },
     }).then(function(status) {
       if (!status) {
-        debugLogger.debug('Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
-        debugLogger.debug('Will transfer again after 5 seconds !\n');
+        debugLogger.debug('[SSH]: Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
+        debugLogger.debug('[SSH]: Will transfer again after 5 seconds !\n');
         setTimeout(function () {
           transfersToRemote(ssh, project, server);
         }, 5000);

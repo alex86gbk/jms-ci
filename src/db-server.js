@@ -26,7 +26,7 @@ const db = {
  */
 function handleError(err) {
   if (err) {
-    debugLogger.debug(err);
+    debugLogger.debug('[db-server]: ' + err);
   }
 }
 

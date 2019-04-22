@@ -4,6 +4,7 @@ const router = express.Router();
 const Project = require('../components/Project');
 const Server = require('../components/Server');
 const Upload = require('../components/Upload');
+const Logger = require('../components/Logger');
 const Exit = require('../components/Exit');
 
 router.post('/getProjectList', Project.getProjectList);
@@ -19,6 +20,8 @@ router.post('/deleteServer', Server.deleteServer);
 router.post('/checkServerStatus', Server.checkServerStatus);
 
 router.post('/uploadFile', Upload.uploadFile);
+
+router.post('/getErrorLog', Logger.getErrorLog);
 
 router.post('/exit', Exit.exit);
 

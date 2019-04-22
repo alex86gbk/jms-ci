@@ -18,7 +18,7 @@ const queryServerRecord = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.findOne(query).exec(function (err, doc) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject({
           result: {
             status: 0,
@@ -41,7 +41,7 @@ const queryProjectRecord = function (query) {
   return new Promise(function (resolve, reject) {
     database.project.findOne(query).exec(function (err, doc) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject({
           result: {
             status: 0,
@@ -63,7 +63,7 @@ const queryProjectRecords = function () {
   return new Promise(function (resolve, reject) {
     database.project.find({}).sort({ createdAt: -1 }).exec(function (err, docs) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject({
           result: {
             status: 0,
@@ -88,7 +88,7 @@ const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject('');
       } else {
         if (doc) {
@@ -116,7 +116,7 @@ const updateServerStatus = function (data) {
       { multi: true },
       function (err) {
         if (err) {
-          debugLogger.debug(err);
+          debugLogger.debug('[Project]: ' + err);
           reject({
             result: {
               status: 0,
@@ -145,7 +145,7 @@ const updateProjectStatus = function (data) {
       { multi: true },
       function (err) {
         if (err) {
-          debugLogger.debug(err);
+          debugLogger.debug('[Project]: ' + err);
           reject({
             result: {
               status: 0,
@@ -173,7 +173,7 @@ const updateProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.project.update({ _id: data.id }, record, function (err) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject({
           result: {
             status: 0,
@@ -201,7 +201,7 @@ const insertProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.project.insert(record, function (err) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject({
           result: {
             status: 0,
@@ -227,7 +227,7 @@ const removeProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.project.remove({ _id: data._id }, function (err) {
       if (err) {
-        debugLogger.debug(err);
+        debugLogger.debug('[Project]: ' + err);
         reject({
           result: {
             status: 0,
