@@ -1,9 +1,10 @@
 const co = require('co');
 const spawn = require('cross-spawn');
 
-const log4js = require('log4js');
-log4js.configure(require('../config').log4js);
-const logger = log4js.getLogger('Project');
+const log4js = require('../log4js');
+const defaultLogger = log4js.getLogger('default');
+const debugLogger = log4js.getLogger('debug');
+const errorLogger = log4js.getLogger('error');
 
 const database = require('../db-server');
 const SSH = require('./SSH');
@@ -17,12 +18,12 @@ const queryServerRecord = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.findOne(query).exec(function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       } else {
         resolve(doc);
@@ -40,12 +41,12 @@ const queryProjectRecord = function (query) {
   return new Promise(function (resolve, reject) {
     database.project.findOne(query).exec(function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       } else {
         resolve(doc);
@@ -62,12 +63,12 @@ const queryProjectRecords = function () {
   return new Promise(function (resolve, reject) {
     database.project.find({}).sort({ createdAt: -1 }).exec(function (err, docs) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       } else {
         resolve({
@@ -87,7 +88,7 @@ const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject('');
       } else {
         if (doc) {
@@ -115,12 +116,12 @@ const updateServerStatus = function (data) {
       { multi: true },
       function (err) {
         if (err) {
-          logger.error(err);
+          debugLogger.debug(err);
           reject({
             result: {
               status: 0,
               errMsg: err.message,
-            }
+            },
           });
         }
         resolve();
@@ -144,12 +145,12 @@ const updateProjectStatus = function (data) {
       { multi: true },
       function (err) {
         if (err) {
-          logger.error(err);
+          debugLogger.debug(err);
           reject({
             result: {
               status: 0,
               errMsg: err.message,
-            }
+            },
           });
         }
         resolve();
@@ -172,20 +173,20 @@ const updateProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.project.update({ _id: data.id }, record, function (err) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       }
-      logger.info(`更新项目： ${data.name} ${data.localPath} 成功`);
+      defaultLogger.info(`更新项目： ${data.name} ${data.localPath} 成功`);
       resolve({
         result: {
           status: 1,
           errMsg: '',
-        }
+        },
       });
     });
   });
@@ -200,20 +201,20 @@ const insertProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.project.insert(record, function (err) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       }
-      logger.info(`新建项目： ${data.name} ${data.localPath} 成功`);
+      defaultLogger.info(`新建项目： ${data.name} ${data.localPath} 成功`);
       resolve({
         result: {
           status: 1,
           errMsg: '',
-        }
+        },
       });
     });
   });
@@ -226,20 +227,20 @@ const removeProjectRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.project.remove({ _id: data._id }, function (err) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       }
-      logger.info(`删除项目： ${data.name} ${data.localPath} 成功`);
+      defaultLogger.info(`删除项目： ${data.name} ${data.localPath} 成功`);
       resolve({
         result: {
           status: 1,
           errMsg: '',
-        }
+        },
       });
     });
   });
@@ -258,7 +259,7 @@ const runBuild = function (project) {
         result: {
           status: 1,
           errMsg: '',
-        }
+        },
       });
     });
     command.stderr.on('data', function(data) {
@@ -266,7 +267,7 @@ const runBuild = function (project) {
         result: {
           status: 0,
           errMsg: data.toString(),
-        }
+        },
       });
     });
     command.on('close', function() {
@@ -278,12 +279,11 @@ const runBuild = function (project) {
       resolve();
     });
     command.on('error', function(err) {
-      logger.error(err.toString());
       reject({
         result: {
           status: 0,
           errMsg: err.toString(),
-        }
+        },
       });
     });
   });
@@ -376,10 +376,11 @@ function packageProject(req, res, next) {
             result: {
               status: 0,
               errMsg: '找不到该项目',
-            }
+            },
           });
         }
       } catch (err) {
+        errorLogger.error(err);
         res.send(err);
       }
     } else {
@@ -387,7 +388,7 @@ function packageProject(req, res, next) {
         result: {
           status: 0,
           errMsg: '项目 id 不能为空',
-        }
+        },
       });
     }
     next();
@@ -437,10 +438,11 @@ function publishProject(req, res, next) {
             result: {
               status: 0,
               errMsg: '找不到该项目或服务器',
-            }
+            },
           });
         }
       } catch (err) {
+        errorLogger.error(err);
         res.send(err);
       }
     } else {
@@ -448,7 +450,7 @@ function publishProject(req, res, next) {
         result: {
           status: 0,
           errMsg: '项目或服务器 id 不能为空',
-        }
+        },
       });
     }
     next();
@@ -474,7 +476,7 @@ function deleteProject(req, res, next) {
             result: {
               status: 0,
               errMsg: '找不到该项目',
-            }
+            },
           });
         }
       } catch (err) {
@@ -485,7 +487,7 @@ function deleteProject(req, res, next) {
         result: {
           status: 0,
           errMsg: '项目 id 不能为空',
-        }
+        },
       });
     }
     next();

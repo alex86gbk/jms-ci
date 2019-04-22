@@ -13,9 +13,9 @@ const opn = require('opn');
 
 const config = require('./src/config');
 
-const log4js = require('log4js');
-log4js.configure(config.log4js);
-const logger = log4js.getLogger('index');
+const log4js = require('./src/log4js');
+const defaultLogger = log4js.getLogger('default');
+const debugLogger = log4js.getLogger('debug');
 
 const common = require('./src/routers/common');
 
@@ -27,7 +27,7 @@ const common = require('./src/routers/common');
  * @param next
  */
 function errHandler(err, req, res, next) {
-  logger.error("Something went wrong: ", err);
+  debugLogger.debug("Something went wrong: ", err);
   res.status(500).send('Something broke!');
   next();
 }
@@ -71,9 +71,13 @@ function initExpressApp() {
     app.use(timeOutHandler);
     app.use(errHandler);
 
-    http.listen(config.PORT);
-    console.log('JMS-CI Started On Port:' + config.PORT);
-    opn(`http://localhost:${config.PORT}/project.html`);
+    try {
+      http.listen(config.PORT);
+      defaultLogger.info('JMS-CI Started On Port:' + config.PORT);
+      opn(`http://localhost:${config.PORT}/project.html`);
+    } catch (err) {
+      debugLogger.debug("Listen went wrong: ",err);
+    }
 
     resolve();
   });

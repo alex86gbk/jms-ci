@@ -4,9 +4,9 @@ const _ = require('lodash');
 const co = require('co');
 const { spawn } = require('child_process');
 
-const log4js = require('log4js');
-log4js.configure(require('../config').log4js);
-const logger = log4js.getLogger('Server');
+const log4js = require('../log4js');
+const defaultLogger = log4js.getLogger('default');
+const debugLogger = log4js.getLogger('debug');
 
 const database = require('../db-server');
 const SSH = require('./SSH');
@@ -20,12 +20,12 @@ const queryServerRecord = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.findOne(query).exec(function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       } else {
         resolve(doc);
@@ -48,12 +48,12 @@ const queryServerRecords = function (query) {
   return new Promise(function (resolve, reject) {
     database.server.find(rules).sort({createdAt: -1}).exec(function (err, docs) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       } else {
         resolve({
@@ -73,7 +73,7 @@ const queryUploadFileRecord = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject('');
       } else {
         if (doc) {
@@ -107,20 +107,20 @@ const updateServerRecord = function (data) {
       { multi: true },
       function (err) {
         if (err) {
-          logger.error(err);
+          debugLogger.debug(err);
           reject({
             result: {
               status: 0,
               errMsg: err.message,
-            }
+            },
           });
         }
-        logger.info(`更新服务器： ${data.name} ${data.host} 成功`);
+        defaultLogger.info(`更新服务器： ${data.name} ${data.host} 成功`);
         resolve({
           result: {
             status: 1,
             errMsg: '',
-          }
+          },
         });
       }
     );
@@ -136,20 +136,20 @@ const insertServerRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.server.insert(record, function (err) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       }
-      logger.info(`新建服务器： ${data.name} ${data.host} 成功`);
+      defaultLogger.info(`新建服务器： ${data.name} ${data.host} 成功`);
       resolve({
         result: {
           status: 1,
           errMsg: '',
-        }
+        },
       });
     });
   });
@@ -162,20 +162,20 @@ const removeServerRecord = function (data) {
   return new Promise(function (resolve, reject) {
     database.server.remove({ _id: data._id }, function (err) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       }
-      logger.info(`删除服务器： ${data.name} ${data.host} 成功`);
+      defaultLogger.info(`删除服务器： ${data.name} ${data.host} 成功`);
       resolve({
         result: {
           status: 1,
           errMsg: '',
-        }
+        },
       });
     });
   });
@@ -301,7 +301,7 @@ function deleteServer(req, res, next) {
             result: {
               status: 0,
               errMsg: '找不到该服务器',
-            }
+            },
           });
         }
       } catch (err) {
@@ -312,7 +312,7 @@ function deleteServer(req, res, next) {
         result: {
           status: 0,
           errMsg: '服务器 id 不能为空',
-        }
+        },
       });
     }
     next();
@@ -342,7 +342,7 @@ function checkServerStatus(req, res, next) {
             result: {
               status: 0,
               errMsg: '找不到该服务器',
-            }
+            },
           });
         }
       } catch (err) {
@@ -353,7 +353,7 @@ function checkServerStatus(req, res, next) {
         result: {
           status: 0,
           errMsg: '服务器 id 不能为空',
-        }
+        },
       });
     }
     next();

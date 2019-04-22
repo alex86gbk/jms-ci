@@ -5,9 +5,8 @@ const co = require('co');
 const node_ssh = require('node-ssh');
 const ssh = new node_ssh();
 
-const log4js = require('log4js');
-log4js.configure(require('../config').log4js);
-const logger = log4js.getLogger('SSH');
+const log4js = require('../log4js');
+const debugLogger = log4js.getLogger('debug');
 
 const database = require('../db-server');
 
@@ -20,7 +19,7 @@ const getPrivateKey = function (id) {
   return new Promise(function (resolve, reject) {
     database.file.findOne({ _id: id }).exec(function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject('');
       } else {
         if (doc) {
@@ -77,15 +76,15 @@ function connectToServer(connect) {
           result: {
             status: 1,
             errMsg: '',
-          }
+          },
         });
       }).catch(function (err) {
-        logger.error(connect.host + err);
+        debugLogger.debug(connect.host + err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         })
       });
     });
@@ -101,7 +100,7 @@ function disconnectFromServer(ssh) {
       ssh.dispose();
       resolve();
     } catch (err) {
-      logger.error(err);
+      debugLogger.debug(err);
       resolve();
     }
   });
@@ -140,11 +139,11 @@ function transfersToRemote(ssh, project, server) {
         } else {
           successful.push(localPath)
         }
-      }
+      },
     }).then(function(status) {
       if (!status) {
-        logger.error('Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
-        logger.error('Will transfer again after 5 seconds !\n');
+        debugLogger.debug('Transfers UNSUCCESSFUL!\n' + failed.join('\n'));
+        debugLogger.debug('Will transfer again after 5 seconds !\n');
         setTimeout(function () {
           transfersToRemote(ssh, project, server);
         }, 5000);

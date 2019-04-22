@@ -6,7 +6,7 @@ function exit(req, res) {
     result: {
       status: 1,
       errMsg: '',
-    }
+    },
   });
   process.exit();
 }

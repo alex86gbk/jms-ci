@@ -1,11 +1,10 @@
-const fs = require('fs');
 const path = require('path');
 const multer  = require('multer');
 const co = require('co');
 
-const log4js = require('log4js');
-log4js.configure(require('../config').log4js);
-const logger = log4js.getLogger('Upload');
+const log4js = require('../log4js');
+const defaultLogger = log4js.getLogger('default');
+const debugLogger = log4js.getLogger('debug');
 
 const database = require('../db-server');
 
@@ -16,9 +15,9 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     filename = renameFile(file.originalname);
     cb(null, filename);
-  }
+  },
 });
-const upload = multer({ storage, }).single('file');
+const upload = multer({ storage }).single('file');
 
 /**
  * 错误上传处理
@@ -28,20 +27,20 @@ const upload = multer({ storage, }).single('file');
  */
 const handleUploadError = function (err, res, next) {
   if (err instanceof multer.MulterError) {
-    logger.error(multer.MulterError);
+    debugLogger.debug(multer.MulterError);
     res.send({
       result: {
         status: 0,
         errMsg: 'A Multer error occurred when uploading',
-      }
+      },
     });
   } else if (err) {
-    logger.error(err);
+    debugLogger.debug(err);
     res.send({
       result: {
         status: 0,
         errMsg: err.message,
-      }
+      },
     });
   }
   next();
@@ -60,21 +59,21 @@ const insertFileData = function (data) {
   return new Promise(function (resolve, reject) {
     database.file.insert(record, function (err, doc) {
       if (err) {
-        logger.error(err);
+        debugLogger.debug(err);
         reject({
           result: {
             status: 0,
             errMsg: err.message,
-          }
+          },
         });
       }
-      logger.info(`上传文件 ${filename} 成功`);
+      defaultLogger.info(`上传文件 ${filename} 成功`);
       resolve({
         result: {
           status: 1,
           errMsg: '',
           fileId: doc._id,
-        }
+        },
       });
     });
   });
