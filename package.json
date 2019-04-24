@@ -1,6 +1,6 @@
 {
   "name": "jms-ci",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Standard Publish Tooling for js-multi-seed Development",
   "bin": {
     "jms-ci": "./jms-ci.js"

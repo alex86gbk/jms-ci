@@ -2,7 +2,7 @@ const path = require('path');
 
 const _ = require('lodash');
 const co = require('co');
-const { spawn } = require('child_process');
+const spawn = require('cross-spawn');
 
 const log4js = require('../log4js');
 const defaultLogger = log4js.getLogger('default');
