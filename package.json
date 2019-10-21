@@ -24,7 +24,7 @@
     "connect-timeout": "1.9.0",
     "cross-spawn": "6.0.5",
     "express": "4.16.4",
-    "lodash": "4.17.11",
+    "lodash": "4.17.15",
     "log4js": "4.1.0",
     "moment": "2.24.0",
     "multer": "1.4.1",
